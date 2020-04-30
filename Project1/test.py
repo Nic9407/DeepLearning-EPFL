@@ -6,42 +6,53 @@ from Project1.plot import visualize_cross_validation_results, visualize_gradient
 
 
 # Function for data normalization
-def stardarize_data(train_data, test_data):
+def standardize_data(train_data, test_data):
     mean, std = train_data.mean(), train_data.std()
-    
+
     return (train_data - mean) / std, (test_data - mean) / std
 
 
-# testing pair model on the test set, returning accuracy
-def test_pair_model(model):
-    num_samples = test_input.size(0)
+# Testing pair model on a test set, returning accuracy
+def test_pair_model(model, test_input, test_target):
     prediction = model(test_input)
-    predicted_class = torch.argmax(prediction, axis=1)
-    accuracy = torch.sum(predicted_class == test_target).float() / num_samples
+    predicted_class = torch.argmax(prediction, dim=1)
+    accuracy = (predicted_class == test_target).float().mean().item()
     return accuracy
 
 
-    
-# test function for siamese model, 2 accuracy 1 of the final two digit comparison
-# and 1 of the two nine-class outputs that we manually compare
-def test_siamese_model(model):
-    num_samples = test_input.size(0)
+# Test function for siamese model, 2 accuracies
+# 1 of the final two digit comparison and 1 of the two ten-class outputs that we manually compare
+def test_siamese_model(model, test_input, test_target):
     prediction_2, (prediction_10_1, prediction_10_2) = model(test_input)
-    predicted_class_2 = torch.argmax(prediction_2, axis=1)
-    predicted_class_10_1 = torch.argmax(prediction_10_1, axis=1)
-    predicted_class_10_2 = torch.argmax(prediction_10_2, axis=1)
+    predicted_class_2 = torch.argmax(prediction_2, dim=1)
+    predicted_class_10_1 = torch.argmax(prediction_10_1, dim=1)
+    predicted_class_10_2 = torch.argmax(prediction_10_2, dim=1)
     predicted_class_10 = predicted_class_10_1 <= predicted_class_10_2
-    accuracy_2 = torch.sum(predicted_class_2 == test_target).float() / num_samples
-    accuracy_10 = torch.sum(predicted_class_10 == test_target).float() / num_samples
+    accuracy_2 = (predicted_class_2 == test_target).float().mean().item()
+    accuracy_10 = (predicted_class_10 == test_target).float().mean().item()
     return accuracy_2, accuracy_10
-    
-# main code definition    
+
+
+# Main code definition
 def main():
+    # Reproducibility
+    seed = 1
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     # Generating dataset for testing and training
     train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
 
     # Cross-validation boolean variable, whether to perform it or it is already completed
     cross_val = False
+
+    # Move the data to the GPU if CUDA is available
+    if torch.cuda.is_available():
+        train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
+        test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
+
     # Cross validation with 10 repetitions for each model for performance evaluation
     if cross_val:
 
