@@ -2,6 +2,7 @@ import torch
 from Project1.dlc_practical_prologue import generate_pair_sets
 from Project1.train import train_pair_model, train_siamese_model
 from Project1.serialization import save_object, load_object
+from Project1.plot import visualize_cross_validation_results, visualize_gradient_norms
 
 
 # Function for data normalization
@@ -117,5 +118,67 @@ def main():
     else:
         # Load and analyze cross-validation results
         cross_val_results = load_object("./Project1/results/cross_val_results.gz")
+
+        visualize_cross_validation_results(cross_val_results, "./Project1/results/plots/")
+
+        pair_model_scores, pair_model_stds, \
+        siamese_model_scores_2, siamese_model_stds_2, \
+        siamese_model_scores_10, siamese_model_stds_10 = cross_val_results
+        best_param_combo_pair_model, best_score_pair_model = max(pair_model_scores.items(),
+                                                                 key=lambda x: x[1])
+        best_pair_model_score_std = pair_model_stds[best_param_combo_pair_model]
+        print("Best score achieved by pair model: {} (+/- {})".format(best_score_pair_model,
+                                                                      best_pair_model_score_std))
+
+        best_param_combo_2_siamese_model, best_score_2_siamese_model = max(siamese_model_scores_2.items(),
+                                                                           key=lambda x: x[1])
+        best_siamese_model_score_2_std = siamese_model_stds_2[best_param_combo_2_siamese_model]
+        best_param_combo_10_siamese_model, best_score_10_siamese_model = max(siamese_model_scores_10.items(),
+                                                                             key=lambda x: x[1])
+        best_siamese_model_score_10_std = siamese_model_stds_10[best_param_combo_10_siamese_model]
+        print("Best scores achieved by siamese model: {} (+/- {}), {} (+/- {})".format(best_score_2_siamese_model,
+                                                                                       best_siamese_model_score_2_std,
+                                                                                       best_score_10_siamese_model,
+                                                                                       best_siamese_model_score_10_std))
+
+        grad_norms_param_combos = [(batch_norm, skip_connections)
+                                   for batch_norm in (False, True)
+                                   for skip_connections in (False, True)]
+        # Retrieve gradient norms during training of the models with best parameters
+        best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_pair_model
+        grad_norms_pair_model = {}
+        grad_norms_param_names_pair_model = {}
+        for grad_norms_param_combo in grad_norms_param_combos:
+            batch_norm, skip_connections = grad_norms_param_combo
+            trained_pair_model, grad_norms = train_pair_model(train_input, train_target,
+                                                              best_nbch1, best_nbch2, best_nbfch,
+                                                              batch_norm, skip_connections,
+                                                              lr=best_lr, verbose=False)
+            grad_norms_pair_model[grad_norms_param_combo] = grad_norms
+            pair_model_param_names = [name for name, _ in trained_pair_model.named_parameters()
+                                      if "bias" not in name]
+            grad_norms_param_names_pair_model[grad_norms_param_combo] = pair_model_param_names
+        visualize_gradient_norms(grad_norms_pair_model, grad_norms_param_names_pair_model,
+                                 "./Project1/results/plots/gradient_norms_pair.png")
+
+        best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_10_siamese_model
+        grad_norms_siamese_model = {}
+        grad_norms_param_names_siamese_model = {}
+        for grad_norms_param_combo in grad_norms_param_combos:
+            batch_norm, skip_connections = grad_norms_param_combo
+            trained_siamese_model, grad_norms = train_siamese_model(train_input, train_target, train_classes,
+                                                                    best_nbch1, best_nbch2, best_nbfch,
+                                                                    batch_norm, skip_connections,
+                                                                    lr=best_lr, loss_weights=(0.1, 1), verbose=False)
+            grad_norms_siamese_model[grad_norms_param_combo] = grad_norms
+            siamese_model_param_names = [name for name, _ in trained_siamese_model.named_parameters()
+                                         if "bias" not in name]
+            grad_norms_param_names_siamese_model[grad_norms_param_combo] = siamese_model_param_names
+
+        visualize_gradient_norms(grad_norms_siamese_model, grad_norms_param_names_siamese_model,
+                                 "./Project1/results/plots/gradient_norms_siamese.png")
+
+
+# Execution of the main code
 if __name__ == "__main__":
     main()
