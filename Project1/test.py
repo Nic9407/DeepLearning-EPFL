@@ -1,6 +1,7 @@
 import torch
-from dlc_practical_prologue import generate_pair_sets
+from Project1.dlc_practical_prologue import generate_pair_sets
 from Project1.train import train_pair_model, train_siamese_model
+from Project1.serialization import save_object, load_object
 
 
 # Function for data normalization
@@ -37,85 +38,84 @@ def test_siamese_model(model):
 def main():
     # Generating dataset for testing and training
     train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
-    
-    # cross-validation boolean variable
+
+    # Cross-validation boolean variable, whether to perform it or it is already completed
     cross_val = False
-    
-    # Addressing to the GPU
-    train_input, train_target, train_classes, test_input, test_target, test_classes = \
-    train_input.cuda(), train_target.cuda(), train_classes.cuda(), test_input.cuda(), test_target.cuda(), test_classes.cuda()
-    train_input.size()
-       
-    # Training and Test data normalization
-    train_input, test_input = stardarize_data(train_input, test_input)
-    
-    # training paired model, learning rate of 0.1
-    trained_pair_model = train_pair_model(lr=1e-1)
-    
-    # testing pair model 
-    test_pair_model(trained_pair_model)
-    
-    # training of the siamese model, two loss weights for the loss and the auxiliary one
-    trained_siamese_model = train_siamese_model(lr=0.25, loss_weights=(1.5, 0.25))
-    
-    # test of the siamese model 
-    test_siamese_model(trained_siamese_model)
-    
-    # cross valdiation with 10 repetition for each model for performance evaluation
+    # Cross validation with 10 repetitions for each model for performance evaluation
     if cross_val:
-        
-        # define parameters for cross-validation
+
+        # Define parameter combinations for cross-validation
         param_grid = [(int(nbch1), int(nbch2), int(nbfch), batch_norm, skip_connections, lr)
-        for nbch1 in np.logspace(3, 7, 5, base=2)
-        for nbch2 in np.logspace(3, 7, 5, base=2)
-        for nbfch in np.logspace(6, 10, 5, base=2)
-        for batch_norm in (True, False)
-        for skip_connections in (True, False)
-        for lr in (0.001, 0.1, 0.25, 1)]
-        
-        # results pre allocation
+                      for nbch1 in [2 ** exp for exp in (4, 5, 6)]
+                      for nbch2 in [2 ** exp for exp in (4, 5, 6)]
+                      for nbfch in [2 ** exp for exp in (7, 8, 9)]
+                      for batch_norm in (True, False)
+                      for skip_connections in (True, False)
+                      for lr in (0.001, 0.1, 0.25, 1)]
+
+        # We store the mean and std of the accuracy scores for both models
         pair_model_scores = {}
         pair_model_stds = {}
         siamese_model_scores_2 = {}
-        siamese_model_scores_10 = {}
         siamese_model_stds_2 = {}
+        siamese_model_scores_10 = {}
         siamese_model_stds_10 = {}
-        
-        # all parameters test
+
+        # Generate 10 different datasets for training and testing during cross-validation
+        datasets = []
+        for i in range(10):
+            train_input, train_target, train_classes, test_input, test_target, test_classes = \
+                generate_pair_sets(1000)
+            # Move the data to the GPU if CUDA is available
+            if torch.cuda.is_available():
+                train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
+                test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
+            # Standardize the data
+            train_input, test_input = standardize_data(train_input, test_input)
+            datasets.append((train_input, train_target, train_classes, test_input, test_target, test_classes))
+
+        # Test each parameter combination
         for param_combo in param_grid:
+            print("Validating parameter combination:", param_combo)
+
             pair_model_scores[param_combo] = []
             siamese_model_scores_2[param_combo] = []
             siamese_model_scores_10[param_combo] = []
             nbch1, nbch2, nbfch, batch_norm, skip_connections, lr = param_combo
-            
-            # ten repetition of randomized training testing for the models
-            for i in range(10):
-                train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
-                train_input, test_input = stardarize_data(train_input, test_input)
-                train_input, test_input, train_target, test_target = train_input.cuda(), test_input.cuda(), train_target.cuda(), test_target.cuda()
-                trained_pair_model, _ = train_pair_model(nbch1, nbch2, nbfch, batch_norm, skip_connections, lr=lr)
-                train_classes, test_classes = train_classes.cuda(), test_classes.cuda()
-                trained_siamese_model, _ = train_siamese_model(nbch1, nbch2, nbfch, batch_norm, skip_connections, lr=lr)
-                pair_model_scores[param_combo].append(test_pair_model(trained_pair_model))
-                score_2, score_10 = test_siamese_model(trained_siamese_model)
+
+            # Ten repetitions of training and testing with different datasets for the models each time
+            for train_input, train_target, train_classes, test_input, test_target, test_classes in datasets:
+                # Train models
+                trained_pair_model, _ = train_pair_model(train_input, train_target,
+                                                         nbch1, nbch2, nbfch, batch_norm, skip_connections,
+                                                         lr=lr, verbose=False)
+                trained_siamese_model, _ = train_siamese_model(train_input, train_target, train_classes,
+                                                               nbch1, nbch2, nbfch, batch_norm, skip_connections,
+                                                               lr=lr, loss_weights=(0.1, 1), verbose=False)
+                # Test models
+                pair_model_scores[param_combo].append(test_pair_model(trained_pair_model, test_input, test_target))
+                score_2, score_10 = test_siamese_model(trained_siamese_model, test_input, test_target)
                 siamese_model_scores_2[param_combo].append(score_2)
                 siamese_model_scores_10[param_combo].append(score_10)
-                
-            # scores evaluation    
-            scores = pair_model_scores[param_combo]
-            pair_model_scores[param_combo] = sum(scores) / 10
-            pair_model_stds[param_combo] = torch.FloatTensor(scores).std()
-            scores = siamese_model_scores_2[param_combo]
-            siamese_model_scores_2[param_combo] = sum(scores) / 10
-            siamese_model_stds_2[param_combo] = torch.FloatTensor(scores).std()
-            scores = siamese_model_scores_10[param_combo]
-            siamese_model_scores_10[param_combo] = sum(scores) / 10
-            siamese_model_stds_10[param_combo] = torch.FloatTensor(scores).std()
-            
-            # eventually printing outputs each iteration
-            print(param_combo, pair_model_scores[param_combo], pair_model_stds[param_combo])
-            print(param_combo, siamese_model_scores_2[param_combo], siamese_model_stds_2[param_combo], siamese_model_scores_10[param_combo], siamese_model_stds_10[param_combo])
 
-# execution of the main code
+            # Compute mean and std of scores for both models
+            scores = torch.FloatTensor(pair_model_scores[param_combo])
+            pair_model_scores[param_combo] = scores.mean().item()
+            pair_model_stds[param_combo] = scores.std().item()
+            scores = torch.FloatTensor(siamese_model_scores_2[param_combo])
+            siamese_model_scores_2[param_combo] = scores.mean().item()
+            siamese_model_stds_2[param_combo] = scores.std().item()
+            scores = torch.FloatTensor(siamese_model_scores_10[param_combo])
+            siamese_model_scores_10[param_combo] = scores.mean().item()
+            siamese_model_stds_10[param_combo] = scores.std().item()
+
+        cross_val_results = (pair_model_scores, pair_model_stds,
+                             siamese_model_scores_2, siamese_model_stds_2,
+                             siamese_model_scores_10, siamese_model_stds_10)
+        # Store results on disk for efficiency and re-usability
+        save_object(cross_val_results, "./Project1/results/cross_val_results.gz")
+    else:
+        # Load and analyze cross-validation results
+        cross_val_results = load_object("./Project1/results/cross_val_results.gz")
 if __name__ == "__main__":
     main()
