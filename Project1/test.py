@@ -1,10 +1,6 @@
 import torch
-from torch import nn
-from torch.nn import functional as F
-from torch import optim
 from dlc_practical_prologue import generate_pair_sets
-from random import sample
-import numpy as np
+from Project1.train import train_pair_model, train_siamese_model
 
 
 # Function for data normalization
@@ -23,42 +19,6 @@ def test_pair_model(model):
     return accuracy
 
 
-    
-# Siamese model training, two losses, one of the final output and one of the 
-# single model recognition of one digit 
-def train_siamese_model(nbch1=32, nbch2=64, nbfch=256, batch_norm=True, skip_connections=True,
-                        num_epochs=25, lr=0.1, mini_batch_size=100, loss_weights=(1, 1), verbose=False):
-    model = SiameseModel(nbch1, nbch2, nbfch, batch_norm, skip_connections).cuda()
-    num_samples = train_input.size(0)
-    optimizer = optim.SGD(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss().cuda()
-    siamese_model_grad_norms = []
-    
-    # epochs for loop
-    for e in range(num_epochs):
-        sum_loss = 0
-        
-        # mini batch loop
-        for b in range(0, num_samples, mini_batch_size):
-            input_mini_batch = train_input[b:b + mini_batch_size]
-            target_mini_batch = train_target[b:b + mini_batch_size]
-            classes_mini_batch = train_classes[b:b + mini_batch_size]
-            model.zero_grad()
-            prediction_2, (prediction_10_1, prediction_10_2) = model(input_mini_batch)
-            loss_2 = criterion(prediction_2, target_mini_batch)
-            loss_10_1 = criterion(prediction_10_1, classes_mini_batch[:, 0])
-            loss_10_2 = criterion(prediction_10_2, classes_mini_batch[:, 1])
-            loss_10 = loss_10_1 + loss_10_2
-            total_loss = loss_weights[0] * loss_2 + loss_weights[1] * loss_10
-            total_loss.backward()
-            sum_loss += total_loss.item()
-            optimizer.step()
-        if verbose:
-            print(e, sum_loss)
-        
-        # saving gradients during backprop
-        siamese_model_grad_norms.append([param.grad.norm().item() for name, param in model.named_parameters() if "bias" not in name])
-    return model, siamese_model_grad_norms
     
 # test function for siamese model, 2 accuracy 1 of the final two digit comparison
 # and 1 of the two nine-class outputs that we manually compare
