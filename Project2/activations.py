@@ -1,4 +1,4 @@
-from Project2.models import Module
+from models import Module
 
 
 class ReLU(Module):

@@ -1,5 +1,5 @@
 from torch import zeros, softmax, log, clamp
-from Project2.models import Module
+from models import Module
 
 
 class LossMSE(Module):
