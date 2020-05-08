@@ -36,6 +36,7 @@ def default_model():
 
     evaluator = Evaluator(model)
 
+    print("Train accuracy: ", evaluator.test(train_input, train_target))
     print("Test accuracy: ", evaluator.test(test_input, test_target))
 
 
