@@ -103,7 +103,7 @@ class AdamCV(CrossValidate):
             train_datasets.append(generate_disc_set(1000))
             test_datasets.append(generate_disc_set(1000))
         
-        if "lr" not in values or "b1" not in values or "b1" not in values or "epsilon" not in values:
+        if "lr" not in values:
             raise ValueError("Expected learning rate values to cross-validate...")
             
         if "b1" not in values:
