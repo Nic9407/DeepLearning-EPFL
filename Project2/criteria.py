@@ -31,18 +31,21 @@ class LossMSE(Module):
 class LossCrossEntropy(Module):
     def __init__(self):
         Module.__init__(self)
-        self.y = None
-        self.target = None
-
+        
     def forward(self, y, target):
         self.y = y.clone()
+        
+        n_classes = target.unique().shape[0]
+        
         self.target = target.clone()
-        sm = softmax(self.y, dim=1)
-        likelihood = -log(clamp(sm[range(target.size(0)), target], min=1e-3, max=None))
+        
+        self.target_onehot = zeros((self.target.shape[0], n_classes)) 
+        self.target_onehot = self.target_onehot.scatter_(1, self.target.view(-1, 1), 1)
+        
+        likelihood = - self.target_onehot * torch.log_softmax(self.y, dim=1)
         return likelihood.mean()
-
+        
     def backward(self):
-        sm = softmax(self.y, dim=1)
-        target_onehot = zeros((self.target.shape[0], 2))
-        target_onehot = target_onehot.scatter_(1, self.target.view(-1, 1), 1)
-        return sm - target_onehot
+        sm = torch.softmax(self.y, dim=1)
+        
+        return sm - self.target_onehot
