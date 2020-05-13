@@ -43,16 +43,20 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    # Generating dataset for testing and training
-    train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
-
     # Cross-validation boolean variable, whether to perform it or it is already completed
     cross_val = False
 
-    # Move the data to the GPU if CUDA is available
-    if torch.cuda.is_available():
-        train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
-        test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
+    # Generate 10 different datasets for training and testing
+    datasets = []
+    for i in range(10):
+        train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
+        # Move the data to the GPU if CUDA is available
+        if torch.cuda.is_available():
+            train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
+            test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
+        # Standardize the data
+        train_input, test_input = standardize_data(train_input, test_input)
+        datasets.append((train_input, train_target, train_classes, test_input, test_target, test_classes))
 
     # Cross validation with 10 repetitions for each model for performance evaluation
     if cross_val:
@@ -73,19 +77,6 @@ def main():
         siamese_model_stds_2 = {}
         siamese_model_scores_10 = {}
         siamese_model_stds_10 = {}
-
-        # Generate 10 different datasets for training and testing during cross-validation
-        datasets = []
-        for i in range(10):
-            train_input, train_target, train_classes, test_input, test_target, test_classes = \
-                generate_pair_sets(1000)
-            # Move the data to the GPU if CUDA is available
-            if torch.cuda.is_available():
-                train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
-                test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
-            # Standardize the data
-            train_input, test_input = standardize_data(train_input, test_input)
-            datasets.append((train_input, train_target, train_classes, test_input, test_target, test_classes))
 
         # Test each parameter combination
         for param_combo in param_grid:
@@ -150,45 +141,67 @@ def main():
                                                                                        best_siamese_model_score_2_std,
                                                                                        best_score_10_siamese_model,
                                                                                        best_siamese_model_score_10_std))
+        print("Generating plots...")
+
+        visualize_cross_validation_results(cross_val_results, "./results/plots/")
 
         grad_norms_param_combos = [(batch_norm, skip_connections)
                                    for batch_norm in (False, True)
                                    for skip_connections in (False, True)]
         # Retrieve gradient norms during training of the models with best parameters
-        best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_pair_model
-        grad_norms_pair_model = {}
-        grad_norms_param_names_pair_model = {}
-        for grad_norms_param_combo in grad_norms_param_combos:
-            batch_norm, skip_connections = grad_norms_param_combo
-            trained_pair_model, grad_norms = train_pair_model(train_input, train_target,
-                                                              best_nbch1, best_nbch2, best_nbfch,
-                                                              batch_norm, skip_connections,
-                                                              lr=best_lr, verbose=False)
-            grad_norms_pair_model[grad_norms_param_combo] = grad_norms
-            pair_model_param_names = [name for name, _ in trained_pair_model.named_parameters()
-                                      if "bias" not in name]
-            grad_norms_param_names_pair_model[grad_norms_param_combo] = pair_model_param_names
-        visualize_gradient_norms(grad_norms_pair_model, grad_norms_param_names_pair_model,
-                                 "./Project1/results/plots/gradient_norms_pair.png")
+        train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
+        # Move the data to the GPU if CUDA is available
+        if torch.cuda.is_available():
+            train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
+            test_input, test_target, test_classes = test_input.cuda(), test_target.cuda(), test_classes.cuda()
+        # Standardize the data
+        train_input, test_input = standardize_data(train_input, test_input)
 
-        best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_10_siamese_model
-        grad_norms_siamese_model = {}
-        grad_norms_param_names_siamese_model = {}
-        for grad_norms_param_combo in grad_norms_param_combos:
-            batch_norm, skip_connections = grad_norms_param_combo
-            trained_siamese_model, grad_norms = train_siamese_model(train_input, train_target, train_classes,
-                                                                    best_nbch1, best_nbch2, best_nbfch,
-                                                                    batch_norm, skip_connections,
-                                                                    lr=best_lr, loss_weights=(0.1, 1), verbose=False)
-            grad_norms_siamese_model[grad_norms_param_combo] = grad_norms
-            siamese_model_param_names = [name for name, _ in trained_siamese_model.named_parameters()
-                                         if "bias" not in name]
-            grad_norms_param_names_siamese_model[grad_norms_param_combo] = siamese_model_param_names
+        # Only perform the computations if the plot has not already been created
+        if not isfile("./results/plots/gradient_norms_pair.png"):
+            best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_pair_model
+            grad_norms_pair_model = {}
+            grad_norms_param_names_pair_model = {}
+            for grad_norms_param_combo in grad_norms_param_combos:
+                batch_norm, skip_connections = grad_norms_param_combo
+                print("Extracting gradient norms for best pair model with batch_norm={} and skip_connections={}"
+                      .format(batch_norm, skip_connections))
 
-        visualize_gradient_norms(grad_norms_siamese_model, grad_norms_param_names_siamese_model,
-                                 "./Project1/results/plots/gradient_norms_siamese.png")
+                trained_pair_model, grad_norms = train_pair_model(train_input, train_target,
+                                                                  nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
+                                                                  batch_norm=batch_norm,
+                                                                  skip_connections=skip_connections,
+                                                                  lr=best_lr, verbose=False)
+                grad_norms_pair_model[grad_norms_param_combo] = grad_norms
+                pair_model_param_names = [name for name, _ in trained_pair_model.named_parameters()
+                                          if "bias" not in name]
+                grad_norms_param_names_pair_model[grad_norms_param_combo] = pair_model_param_names
+            visualize_gradient_norms(grad_norms_pair_model, grad_norms_param_names_pair_model,
+                                     "./results/plots/gradient_norms_pair.png")
 
+        # Only perform the computations if the plot has not already been created
+        if not isfile("./results/plots/gradient_norms_siamese.png"):
+            best_nbch1, best_nbch2, best_nbfch, _, _, best_lr = best_param_combo_10_siamese_model
+            grad_norms_siamese_model = {}
+            grad_norms_param_names_siamese_model = {}
+            for grad_norms_param_combo in grad_norms_param_combos:
+                batch_norm, skip_connections = grad_norms_param_combo
+                print("Extracting gradient norms for best siamese model with batch_norm={} and skip_connections={}"
+                      .format(batch_norm, skip_connections))
 
-# Execution of the main code
+                trained_siamese_model, grad_norms = train_siamese_model(train_input, train_target, train_classes,
+                                                                        loss_weights=(0.1, 1), nbch1=best_nbch1,
+                                                                        nbch2=best_nbch2, nbfch=best_nbfch,
+                                                                        batch_norm=batch_norm,
+                                                                        skip_connections=skip_connections, lr=best_lr,
+                                                                        verbose=False)
+                grad_norms_siamese_model[grad_norms_param_combo] = grad_norms
+                siamese_model_param_names = [name for name, _ in trained_siamese_model.named_parameters()
+                                             if "bias" not in name]
+                grad_norms_param_names_siamese_model[grad_norms_param_combo] = siamese_model_param_names
+
+            visualize_gradient_norms(grad_norms_siamese_model, grad_norms_param_names_siamese_model,
+                                     "./results/plots/gradient_norms_siamese.png")
+
 if __name__ == "__main__":
     main()
