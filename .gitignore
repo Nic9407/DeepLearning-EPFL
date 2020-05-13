@@ -1,4 +1,5 @@
-.idea/
-data/
 Project1/__pycache__/
 Project2/__pycache__/
+Project1/.idea/
+Project1/data/
+Project2/.idea/

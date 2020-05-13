@@ -1,8 +1,9 @@
 import torch
-from Project1.dlc_practical_prologue import generate_pair_sets
-from Project1.train import train_pair_model, train_siamese_model
-from Project1.serialization import save_object, load_object
-from Project1.plot import visualize_cross_validation_results, visualize_gradient_norms
+from dlc_practical_prologue import generate_pair_sets
+from train import train_pair_model, train_siamese_model
+from serialization import save_object, load_object
+from plot import visualize_cross_validation_results, visualize_gradient_norms, visualize_loss_weights_siamese
+from os.path import isfile
 
 
 # Function for data normalization
@@ -124,13 +125,11 @@ def main():
         cross_val_results = (pair_model_scores, pair_model_stds,
                              siamese_model_scores_2, siamese_model_stds_2,
                              siamese_model_scores_10, siamese_model_stds_10)
-        # Store results on disk for efficiency and re-usability
-        save_object(cross_val_results, "./Project1/results/cross_val_results.gz")
+        # Store the results on disk for efficiency and re-usability
+        save_object(cross_val_results, "./results/cross_val_results.gz")
     else:
-        # Load and analyze cross-validation results
-        cross_val_results = load_object("./Project1/results/cross_val_results.gz")
-
-        visualize_cross_validation_results(cross_val_results, "./Project1/results/plots/")
+        # Load and analyze the cross-validation results
+        cross_val_results = load_object("./results/cross_val_results.gz")
 
         pair_model_scores, pair_model_stds, \
         siamese_model_scores_2, siamese_model_stds_2, \
