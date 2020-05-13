@@ -203,5 +203,49 @@ def main():
             visualize_gradient_norms(grad_norms_siamese_model, grad_norms_param_names_siamese_model,
                                      "./results/plots/gradient_norms_siamese.png")
 
+        # Analyze the influence of the auxiliary loss weights on the test accuracy of the siamese model
+        # Only perform the computations if the plot has not already been created
+        if not isfile("./results/plots/loss_weights_siamese.png"):
+            siamese_model_scores_2 = {}
+            siamese_model_stds_2 = {}
+            siamese_model_scores_10 = {}
+            siamese_model_stds_10 = {}
+            best_nbch1, best_nbch2, best_nbfch, batch_norm, skip_connections, best_lr = \
+                best_param_combo_10_siamese_model
+            # Test each auxiliary loss weight ratio
+            possible_loss_weights = [(0, 1), ] + [(10 ** exp, 1) for exp in (-3, -2, -1, 0, 1, 2, 3)] + [(1, 0), ]
+            for loss_weights in possible_loss_weights:
+                print("Validating loss weight ratio:", loss_weights)
+
+                siamese_model_scores_2[loss_weights] = []
+                siamese_model_scores_10[loss_weights] = []
+                # Ten repetitions of training and testing with different datasets for the model each time
+                for train_input, train_target, train_classes, test_input, test_target, test_classes in datasets:
+                    # Train models
+                    trained_siamese_model, _ = train_siamese_model(train_input, train_target, train_classes,
+                                                                   loss_weights=loss_weights,
+                                                                   nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
+                                                                   batch_norm=batch_norm,
+                                                                   skip_connections=skip_connections,
+                                                                   lr=best_lr, verbose=False)
+                    # Test models
+                    score_2, score_10 = test_siamese_model(trained_siamese_model, test_input, test_target)
+                    siamese_model_scores_2[loss_weights].append(score_2)
+                    siamese_model_scores_10[loss_weights].append(score_10)
+
+                # Compute the mean and standard deviation of the scores across the 10 datasets
+                scores = torch.FloatTensor(siamese_model_scores_2[loss_weights])
+                siamese_model_scores_2[loss_weights] = scores.mean().item()
+                siamese_model_stds_2[loss_weights] = scores.std().item()
+                scores = torch.FloatTensor(siamese_model_scores_10[loss_weights])
+                siamese_model_scores_10[loss_weights] = scores.mean().item()
+                siamese_model_stds_10[loss_weights] = scores.std().item()
+
+            cross_val_results = (siamese_model_scores_2, siamese_model_stds_2,
+                                 siamese_model_scores_10, siamese_model_stds_10)
+            visualize_loss_weights_siamese(cross_val_results, "./results/plots/loss_weights_siamese.png")
+        print("Done!")
+
+
 if __name__ == "__main__":
     main()
