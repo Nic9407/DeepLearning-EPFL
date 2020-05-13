@@ -1,3 +1,10 @@
+"""
+Module containing the main code of the project
+The goal is to predict whether in a pair of MNIST digit images the first is smaller or equal than the other
+After discovering the optimal parameters for both of the model architectures using cross-validation,
+using plots we analyse the influence of different parameters on the test score and gradient norms
+"""
+
 import torch
 from dlc_practical_prologue import generate_pair_sets
 from train import train_pair_model, train_siamese_model
@@ -6,24 +13,53 @@ from plot import visualize_cross_validation_results, visualize_gradient_norms, v
 from os.path import isfile
 
 
-# Function for data normalization
 def standardize_data(train_data, test_data):
+    """
+    Helper function for data normalization
+    The train feature means and standard deviations are used to perform Z-normalization
+
+    :param train_data: paired MNIST train data, torch.Tensor of size [num_train_samples, 2, 14, 14]
+    :param test_data: paired MNIST test data, torch.Tensor of size [num_test_samples, 2, 14, 14]
+
+    :returns: tuple of 2 tensors, normalized train and test data
+    """
+
     mean, std = train_data.mean(), train_data.std()
 
     return (train_data - mean) / std, (test_data - mean) / std
 
 
-# Testing pair model on a test set, returning accuracy
 def test_pair_model(model, test_input, test_target):
+    """
+    Function for evaluating a trained model with the paired architecture on test data
+    Accuracy on predicting the 2 classes is calculated as a ratio
+
+    :param model: trained model with the paired architecture, models.PairModel object
+    :param test_input: paired MNIST test data, torch.Tensor of size [num_test_samples, 2, 14, 14]
+    :param test_target: paired MNIST test class labels, torch.Tensor of size [num_test_samples]
+
+    :returns: test accuracy, float in [0, 1]
+    """
+
     prediction = model(test_input)
     predicted_class = torch.argmax(prediction, dim=1)
     accuracy = (predicted_class == test_target).float().mean().item()
     return accuracy
 
 
-# Test function for siamese model, 2 accuracies
-# 1 of the final two digit comparison and 1 of the two ten-class outputs that we manually compare
 def test_siamese_model(model, test_input, test_target):
+    """
+    Function for evaluating a trained model with the siamese architecture on test data
+    Accuracies on predicting the 2 classes directly or using the two 10-class predictions are calculated as ratios
+    In the latter case the two 10-class outputs from the siamese branches are manually compared
+
+    :param model: trained model with the siamese architecture, models.SiameseModel object
+    :param test_input: paired MNIST test data, torch.Tensor of size [num_test_samples, 2, 14, 14]
+    :param test_target: paired MNIST test class labels, torch.Tensor of size [num_test_samples]
+
+    :returns: tuple of 2 values: direct 2-class and 10-to-2-class accuracy, floats in [0, 1]
+    """
+
     prediction_2, (prediction_10_1, prediction_10_2) = model(test_input)
     predicted_class_2 = torch.argmax(prediction_2, dim=1)
     predicted_class_10_1 = torch.argmax(prediction_10_1, dim=1)
@@ -34,8 +70,11 @@ def test_siamese_model(model, test_input, test_target):
     return accuracy_2, accuracy_10
 
 
-# Main code definition
 def main():
+    """
+    Function containing the main code definition
+    """
+
     # Reproducibility
     seed = 1
     torch.manual_seed(seed)
@@ -70,7 +109,7 @@ def main():
                       for skip_connections in (True, False)
                       for lr in (0.001, 0.1, 0.25, 1)]
 
-        # We store the mean and std of the accuracy scores for both models
+        # We store the mean and standard deviation of the accuracy scores for both models
         pair_model_scores = {}
         pair_model_stds = {}
         siamese_model_scores_2 = {}
@@ -91,18 +130,21 @@ def main():
             for train_input, train_target, train_classes, test_input, test_target, test_classes in datasets:
                 # Train models
                 trained_pair_model, _ = train_pair_model(train_input, train_target,
-                                                         nbch1, nbch2, nbfch, batch_norm, skip_connections,
+                                                         nbch1=nbch1, nbch2=nbch2, nbfch=nbfch,
+                                                         batch_norm=batch_norm, skip_connections=skip_connections,
                                                          lr=lr, verbose=False)
                 trained_siamese_model, _ = train_siamese_model(train_input, train_target, train_classes,
-                                                               nbch1, nbch2, nbfch, batch_norm, skip_connections,
-                                                               lr=lr, loss_weights=(0.1, 1), verbose=False)
+                                                               loss_weights=(0.1, 1),
+                                                               nbch1=nbch1, nbch2=nbch2, nbfch=nbfch,
+                                                               batch_norm=batch_norm, skip_connections=skip_connections,
+                                                               lr=lr, verbose=False)
                 # Test models
                 pair_model_scores[param_combo].append(test_pair_model(trained_pair_model, test_input, test_target))
                 score_2, score_10 = test_siamese_model(trained_siamese_model, test_input, test_target)
                 siamese_model_scores_2[param_combo].append(score_2)
                 siamese_model_scores_10[param_combo].append(score_10)
 
-            # Compute mean and std of scores for both models
+            # Compute the mean and standard deviation of the scores across the 10 datasets for both models
             scores = torch.FloatTensor(pair_model_scores[param_combo])
             pair_model_scores[param_combo] = scores.mean().item()
             pair_model_stds[param_combo] = scores.std().item()
@@ -128,8 +170,9 @@ def main():
         best_param_combo_pair_model, best_score_pair_model = max(pair_model_scores.items(),
                                                                  key=lambda x: x[1])
         best_pair_model_score_std = pair_model_stds[best_param_combo_pair_model]
-        print("Best score achieved by pair model: {} (+/- {})".format(best_score_pair_model,
-                                                                      best_pair_model_score_std))
+        print("Best parameter combination for the pair model:", best_param_combo_pair_model)
+        print("Best score achieved by the pair model: {} (+/- {})".format(best_score_pair_model,
+                                                                          best_pair_model_score_std))
 
         best_param_combo_2_siamese_model, best_score_2_siamese_model = max(siamese_model_scores_2.items(),
                                                                            key=lambda x: x[1])
@@ -137,18 +180,22 @@ def main():
         best_param_combo_10_siamese_model, best_score_10_siamese_model = max(siamese_model_scores_10.items(),
                                                                              key=lambda x: x[1])
         best_siamese_model_score_10_std = siamese_model_stds_10[best_param_combo_10_siamese_model]
-        print("Best scores achieved by siamese model: {} (+/- {}), {} (+/- {})".format(best_score_2_siamese_model,
-                                                                                       best_siamese_model_score_2_std,
-                                                                                       best_score_10_siamese_model,
-                                                                                       best_siamese_model_score_10_std))
+        print("Best parameter combination for the siamese model:", best_param_combo_10_siamese_model)
+        print("Best scores achieved by the siamese model:\n"
+              "2-class {} (+/- {}), 10-class {} (+/- {})".format(best_score_2_siamese_model,
+                                                                 best_siamese_model_score_2_std,
+                                                                 best_score_10_siamese_model,
+                                                                 best_siamese_model_score_10_std))
         print("Generating plots...")
 
         visualize_cross_validation_results(cross_val_results, "./results/plots/")
 
+        # Retrieve gradient norms of the weights computed during training of the models with best parameters
+        # Analyze the influence of the usage of batch normalization and skip connections on the gradient norms,
+        # across architecture depth and training time
         grad_norms_param_combos = [(batch_norm, skip_connections)
                                    for batch_norm in (False, True)
                                    for skip_connections in (False, True)]
-        # Retrieve gradient norms during training of the models with best parameters
         train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
         # Move the data to the GPU if CUDA is available
         if torch.cuda.is_available():
@@ -248,4 +295,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # Execution of the main code
     main()

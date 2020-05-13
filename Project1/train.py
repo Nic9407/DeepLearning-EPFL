@@ -1,18 +1,39 @@
+""" Module containing the implementations of the training procedures for both model types """
+
 import torch
 from torch.optim import SGD
 from torch import nn
-from Project1.models import PairModel, SiameseModel
+from models import PairModel, SiameseModel
 
 
-# Training function for the pair model
 def train_pair_model(train_input, train_target,
                      nbch1=32, nbch2=64, nbfch=256, batch_norm=True, skip_connections=True,
                      num_epochs=25, lr=0.1, mini_batch_size=100, verbose=True):
-    model = PairModel(nbch1, nbch2, nbfch, batch_norm, skip_connections)
+    """
+    Function to implement the training procedure for the pair model
+    Mini-batch SGD is used to minimize the direct 2-class cross-entropy loss
+
+    :param train_input: paired MNIST train data, torch.Tensor of size [num_train_samples, 2, 14, 14]
+    :param train_target: paired MNIST train class labels, torch.Tensor of size [num_train_samples]
+    :param nbch1: number of channels in the first convolution layer, positive int, optional, default is 32
+    :param nbch2: number of channels in the second convolution layer, positive int, optional, default is 64
+    :param nbfch: number of fully-connected hidden nodes, positive int, optional, default is 256
+    :param batch_norm: whether to activate batch normalization, boolean, optional, default is True
+    :param skip_connections: whether to use output from the skip connections, boolean, optional, default is True
+    :param num_epochs: maximum number of training epochs, positive int, optional, default is 25
+    :param lr: SGD learning rate, positive float, optional, default is 0.1
+    :param mini_batch_size: number of samples per mini-batch, int in [1, num_train_samples], optional, default is 100
+    :param verbose: whether to print total loss values after each epoch, boolean, optional, default is True
+
+    :returns: trained pair model, models.PairModel object
+              + list of norms of the gradients of the weights of each layer in the architecture after each mini-batch
+    """
+
+    model = PairModel(mini_batch_size, nbch1, nbch2, nbfch, batch_norm, skip_connections)
     num_samples = train_input.size(0)
     optimizer = SGD(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
-    # Move model and loss to the GPU if CUDA is available
+    # Move the model and loss to the GPU if CUDA is available
     if torch.cuda.is_available():
         model = model.cuda()
         criterion = criterion.cuda()
@@ -35,7 +56,7 @@ def train_pair_model(train_input, train_target,
             # Release the data from GPU memory to avoid quick memory consumption
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            # Saving the gradient norms of the weights at the end of each mini-batch
+            # Saving the gradient norms of the weights at the end of each mini-batch processing
             pair_model_grad_norms.append([param.grad.norm().item()
                                           for name, param in model.named_parameters()
                                           if "bias" not in name])
@@ -45,11 +66,33 @@ def train_pair_model(train_input, train_target,
     return model, pair_model_grad_norms
 
 
-# Siamese model training, two losses, one of the final output and one of the single model recognition of each digit
-def train_siamese_model(train_input, train_target, train_classes,
+def train_siamese_model(train_input, train_target, train_classes, loss_weights,
                         nbch1=32, nbch2=64, nbfch=256, batch_norm=True, skip_connections=True,
-                        num_epochs=25, lr=0.1, mini_batch_size=100, loss_weights=(1, 1), verbose=True):
-    model = SiameseModel(nbch1, nbch2, nbfch, batch_norm, skip_connections)
+                        num_epochs=25, lr=0.1, mini_batch_size=100, verbose=True):
+    """
+    Function to implement the training procedure for the pair model
+    Mini-batch SGD is used to minimize an auxiliary loss constructed as a weighted linear combination
+    of the direct 2-class cross-entropy loss and the two 10-class cross-entropy losses
+
+    :param train_input: paired MNIST train data, torch.Tensor of size [num_train_samples, 2, 14, 14]
+    :param train_target: paired MNIST train 2-class labels, torch.Tensor of size [num_train_samples]
+    :param train_classes: paired MNIST train 10-class labels, torch.Tensor of size [num_train_samples, 2]
+    :param loss_weights: weights of the 2-class and 10-class losses, tuple of two non-negative floats
+    :param nbch1: number of channels in the first convolution layer, positive int, optional, default is 32
+    :param nbch2: number of channels in the second convolution layer, positive int, optional, default is 64
+    :param nbfch: number of fully-connected hidden nodes, positive int, optional, default is 256
+    :param batch_norm: whether to activate batch normalization, boolean, optional, default is True
+    :param skip_connections: whether to use output from the skip connections, boolean, optional, default is True
+    :param num_epochs: maximum number of training epochs, positive int, optional, default is 25
+    :param lr: SGD learning rate, positive float, optional, the default is 0.1
+    :param mini_batch_size: number of samples per mini-batch, int in [1, num_train_samples], optional, default is 100
+    :param verbose: whether to print total loss values after each epoch, boolean, optional, default is True
+
+    :returns: trained siamese model, models.SiameseModel object
+              + list of norms of the gradients of the weights of each layer in the architecture after each mini-batch
+    """
+
+    model = SiameseModel(mini_batch_size, nbch1, nbch2, nbfch, batch_norm, skip_connections)
     num_samples = train_input.size(0)
     optimizer = SGD(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
@@ -70,10 +113,13 @@ def train_siamese_model(train_input, train_target, train_classes,
             classes_mini_batch = train_classes[b:min(b + mini_batch_size, num_samples)]
             model.zero_grad()
             prediction_2, (prediction_10_1, prediction_10_2) = model(input_mini_batch)
+            # The first loss part is computed from the final 2-class prediction
             loss_2 = criterion(prediction_2, target_mini_batch)
+            # The second loss part is computed as a sum of the two 10-class predictions
             loss_10_1 = criterion(prediction_10_1, classes_mini_batch[:, 0])
             loss_10_2 = criterion(prediction_10_2, classes_mini_batch[:, 1])
             loss_10 = loss_10_1 + loss_10_2
+            # The total loss that is minimized is a weighted linear combination of the two loss values
             total_loss = loss_weights[0] * loss_2 + loss_weights[1] * loss_10
             total_loss.backward()
             sum_loss += total_loss.item()
@@ -81,7 +127,7 @@ def train_siamese_model(train_input, train_target, train_classes,
             # Release the data from GPU memory to avoid quick memory consumption
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            # Saving the gradient norms of the weights at the end of each mini-batch
+            # Saving the gradient norms of the weights at the end of each mini-batch processing
             siamese_model_grad_norms.append([param.grad.norm().item()
                                              for name, param in model.named_parameters()
                                              if "bias" not in name])

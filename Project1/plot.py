@@ -1,3 +1,5 @@
+""" Module containing implementations of functions for generating the desired plots """
+
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -11,12 +13,28 @@ colormap_brg_darker = ListedColormap(colormap_brg_darker)
 
 
 def visualize_cross_validation_results(cross_val_results, plots_filepath):
+    """
+    Function for generating the plots visualizing the cross-validation results, aggregated for each parameter and value
+
+    :param cross_val_results: tuple of the 6 dictionaries with mean and std scores for each model from test.py
+    :param plots_filepath: local directory path where to save the plot figures, string
+    """
+
     pair_model_scores, pair_model_stds, \
     siamese_model_scores_2, siamese_model_stds_2, \
     siamese_model_scores_10, siamese_model_stds_10 = cross_val_results
     param_names = ("NBCH1", "NBCH2", "NBFCH", "BATCH_NORM", "SKIP_CON", "LR")
 
     def aggregate_results(scores, stds):
+        """
+        Helper function to aggregate score means and standard deviations for a model across parameter values
+
+        :param scores: dictionary of score means {param_combo: score_mean}
+        :param stds: dictionary of score stds {param_combo: score_std}
+
+        :returns: list of tuples of pandas.Dataframe objects containing aggregated mean and std data
+        """
+
         scores = pd.DataFrame(scores.values(),
                               index=scores.keys(),
                               columns=["SCORE MEAN", ])
@@ -59,6 +77,15 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
                                   capsize=5,
                                   ylim=(0.4, 1.1),
                                   colormap=colormap_brg_darker)
+        # param_values = list(score_mean_data.index)
+        # if plot_param_names == "batch_norm, skip_con":
+        #     param_values = list(map(str, param_values))
+        # score_mean_data.plot.line(ylim=(0.4, 1.1), colormap="brg")
+        # for model_name in model_names:
+        #     plt.fill_between(x=param_values,
+        #                      y1=score_mean_data[model_name] - score_std_data[model_name],
+        #                      y2=score_mean_data[model_name] + score_std_data[model_name],
+        #                      alpha=1, cmap=colormap_brg_darker)
         plt.title("Cross validation results for parameters:\n{}".format(plot_param_names), fontsize=18)
         plt.xlabel("Parameter value", fontsize=14)
         plt.ylabel("Average accuracy", fontsize=14)
@@ -72,6 +99,14 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
 
 
 def visualize_gradient_norms(gradient_norms, parameter_names, plot_filepath):
+    """
+    Function for generating the plot visualizing the model's weight gradient norms across depth and training time
+
+    :param gradient_norms: list of weight gradient norms of each layer in the architecture after each mini-batch
+    :param parameter_names: names of the architecture weight parameters, list of strings
+    :param plot_filepath: local filepath where to save the plot figure, string
+    """
+
     fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(2 * 10, 2 * 5), sharex="all", sharey="all")
     fig.suptitle("Gradient norms vs. batch_norm & skip_con", fontsize=18)
     for i, (param_combo, grad_norms) in enumerate(gradient_norms.items()):
