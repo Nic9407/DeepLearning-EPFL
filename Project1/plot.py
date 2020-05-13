@@ -77,15 +77,6 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
                                   capsize=5,
                                   ylim=(0.4, 1.1),
                                   colormap=colormap_brg_darker)
-        # param_values = list(score_mean_data.index)
-        # if plot_param_names == "batch_norm, skip_con":
-        #     param_values = list(map(str, param_values))
-        # score_mean_data.plot.line(ylim=(0.4, 1.1), colormap="brg")
-        # for model_name in model_names:
-        #     plt.fill_between(x=param_values,
-        #                      y1=score_mean_data[model_name] - score_std_data[model_name],
-        #                      y2=score_mean_data[model_name] + score_std_data[model_name],
-        #                      alpha=1, cmap=colormap_brg_darker)
         plt.title("Cross validation results for parameters:\n{}".format(plot_param_names), fontsize=18)
         plt.xlabel("Parameter value", fontsize=14)
         plt.ylabel("Average accuracy", fontsize=14)
