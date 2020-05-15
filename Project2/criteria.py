@@ -72,8 +72,8 @@ class LossCrossEntropy(Module):
 
         self.y = y.clone()
 
-        n_classes = y.shape[0]
-        n_samples = y.shape[1]
+        n_classes = y.shape[1]
+        n_samples = y.shape[0]
 
         self.target = target.clone()
 
