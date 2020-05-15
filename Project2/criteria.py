@@ -72,7 +72,8 @@ class LossCrossEntropy(Module):
 
         self.y = y.clone()
 
-        n_classes = target.unique().shape[0]
+        n_classes = y.shape[0]
+        n_samples = y.shape[1]
 
         self.target = target.clone()
 
@@ -80,7 +81,7 @@ class LossCrossEntropy(Module):
         self.target_onehot = self.target_onehot.scatter_(1, self.target.view(-1, 1), 1)
 
         likelihood = - self.target_onehot * log_softmax(self.y, dim=1)
-        return likelihood.mean()
+        return likelihood.sum() / n_samples
 
     def backward(self):
         """
