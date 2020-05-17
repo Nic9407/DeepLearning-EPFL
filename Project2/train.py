@@ -8,7 +8,7 @@ from criteria import LossMSE
 def generate_disc_set(nb):
     """
     Function for generating the disc dataset of points distributed as Uniform(-1, 1)
-    Points inside a 2D disk of radius sqrt(2 / pi) centered at the origin are labeled with 0 while the rest with 1
+    Points inside a 2D disk of radius sqrt(1 / (2*pi)) centered at the origin are labeled with 0 while the rest with 1
 
     :param nb: number of train samples, positive int
 
@@ -21,8 +21,8 @@ def generate_disc_set(nb):
     if not isinstance(nb, int) or nb <= 0:
         raise ValueError("Number of samples must be a positive integer")
 
-    input_data = torch.empty(nb, 2).uniform_(-1, 1)
-    target_data = input_data.pow(2).sum(dim=1).sub(2 / math.pi).sign().add(1).div(2).long()
+    input_data = torch.empty(nb, 2).uniform_(0, 1)
+    target_data = input_data.pow(2).sum(dim=1).sub(1 / (2 * math.pi)).sign().add(1).div(2).long()
     return input_data, target_data
 
 

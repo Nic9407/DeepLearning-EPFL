@@ -6,6 +6,7 @@ using plots we analyse the influence of different parameters on the test score a
 """
 
 import torch
+import random
 from dlc_practical_prologue import generate_pair_sets
 from train import train_pair_model, train_siamese_model, test_pair_model, test_siamese_model
 from cross_validate import \
@@ -38,6 +39,7 @@ def main():
 
     # Reproducibility
     seed = 1
+    random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
@@ -77,8 +79,8 @@ def main():
                                                                  key=lambda x: x[1])
         best_pair_model_score_std = pair_model_stds[best_param_combo_pair_model]
         print("Best parameter combination for the pair model:", best_param_combo_pair_model)
-        print("Best score achieved by the pair model: {} (+/- {})".format(best_score_pair_model,
-                                                                          best_pair_model_score_std))
+        print("Best cross-val score achieved by the pair model: {} (+/- {})".format(best_score_pair_model,
+                                                                                    best_pair_model_score_std))
 
         best_param_combo_2_siamese_model, best_score_2_siamese_model = max(siamese_model_scores_2.items(),
                                                                            key=lambda x: x[1])
@@ -87,7 +89,7 @@ def main():
                                                                              key=lambda x: x[1])
         best_siamese_model_score_10_std = siamese_model_stds_10[best_param_combo_10_siamese_model]
         print("Best parameter combination for the siamese model:", best_param_combo_10_siamese_model)
-        print("Best scores achieved by the siamese model:\n"
+        print("Best cross-val scores achieved by the siamese model:\n"
               "2-class {} (+/- {}), 10-class {} (+/- {})".format(best_score_2_siamese_model,
                                                                  best_siamese_model_score_2_std,
                                                                  best_score_10_siamese_model,
