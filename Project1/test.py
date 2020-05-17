@@ -64,10 +64,11 @@ def main():
     if cross_val:
         cross_val_results = cross_validate_architecture_params(datasets)
         # Store the results on disk for efficiency and re-usability
-        save_object(cross_val_results, "./results/cross_val_results.gz")
+        save_object(cross_val_results, "./results/cross_val_results_model_parameters.gz")
     else:
+
         # Load and analyze the cross-validation results
-        cross_val_results = load_object("./results/cross_val_results.gz")
+        cross_val_results = load_object("./results/cross_val_results_model_parameters.gz")
 
         pair_model_scores, pair_model_stds, \
         siamese_model_scores_2, siamese_model_stds_2, \
@@ -116,10 +117,8 @@ def main():
                 cross_validate_gradient_norms(train_input, train_target, train_classes,
                                               best_param_combo_pair_model, best_param_combo_2_siamese_model)
             visualize_gradient_norms(grad_norms_pair_model, grad_norms_param_names_pair_model,
-                                     "./results/plots/gradient_norms_pair.png")
-
+                                     "./results/plots/gradient_norms_pair.eps")
             visualize_gradient_norms(grad_norms_siamese_model, grad_norms_param_names_siamese_model,
-                                     "./results/plots/gradient_norms_siamese.png")
                                      "./results/plots/gradient_norms_siamese.eps")
             print("Done!")
 
