@@ -93,6 +93,28 @@ def main():
                                                                  best_score_10_siamese_model,
                                                                  best_siamese_model_score_10_std))
 
+        train_input, train_target, train_classes, test_input, test_target, test_classes = datasets[0]
+
+        best_nbch1, best_nbch2, best_nbfch, use_batch_norm, use_skip_con, best_lr = best_param_combo_pair_model
+        trained_pair_model, _ = train_pair_model(train_input, train_target,
+                                                 nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
+                                                 batch_norm=use_batch_norm, skip_connections=use_skip_con,
+                                                 lr=best_lr, mini_batch_size=100)
+        print("Pair model test score on one dataset:",
+              test_pair_model(trained_pair_model, test_input, test_target))
+        trained_siamese_2_model, _ = train_siamese_model(train_input, train_target, train_classes,
+                                                         loss_weights=(1, 10 ** -0.5),
+                                                         nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
+                                                         batch_norm=use_batch_norm, skip_connections=use_skip_con,
+                                                         lr=best_lr, mini_batch_size=100)
+        print("Siamese model 2-classes test score on one dataset:",
+              test_siamese_model(trained_siamese_2_model, test_input, test_target)[0])
+        trained_siamese_10_model, _ = train_siamese_model(train_input, train_target, train_classes, loss_weights=(0, 1),
+                                                          nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
+                                                          batch_norm=use_batch_norm, skip_connections=use_skip_con,
+                                                          lr=best_lr, mini_batch_size=100)
+        print("Siamese model 10-classes test score on one dataset:",
+              test_siamese_model(trained_siamese_10_model, test_input, test_target)[1])
 
         if generate_figures:
             print("Generating plots...")
