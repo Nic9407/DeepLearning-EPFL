@@ -48,7 +48,7 @@ def main():
     # Cross-validation boolean variable, whether to perform it or it is already completed
     cross_val = False
     # Plotting boolean variable, whether to generate the figures or they are already completed
-    generate_figures = True
+    generate_figures = False
 
     # Generate 10 different datasets for training and testing
     datasets = []

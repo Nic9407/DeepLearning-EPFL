@@ -276,76 +276,78 @@ class AdamCV(__CrossValidator):
                                   mini_batch_size=self.optimizer.mini_batch_size,
                                   lr=lr, criterion=self.optimizer.criterion, b1=b1, b2=b2, epsilon=epsilon)
 
+
 def cross_val_results(verbose=True):
     """
     Function for generating the accuracy results of four models presented in the report with their best parameters,
-    averaged over 10 runs and using different combinaison of the available optimizers and loss
+    averaged over 10 runs and using different combinations of the available optimizers and loss
     
-    :param verbose: whether to print average results for each (Model, Optimizer, Loss) combination, boolean, optional, default is True
+    :param verbose: whether to print average results for each (Model, Optimizer, Loss) combination,
+                    boolean, optional, default is True
 
     :returns: list of tuples containing (mean, std) of each (Model, Optimizer, Loss) combination, each tuple in [0, 1]^2
     """
+
     datasets = []
-    
+
     for i in range(10):
         datasets.append((generate_disc_set(1000), generate_disc_set(1000)))
-    
 
     relu_model = Sequential(Linear(2, 25), ReLU(),
                             Linear(25, 25), ReLU(),
                             Linear(25, 25), ReLU(),
                             Linear(25, 2), xavier_init=True)
-    
+
     leaky_relu_model = Sequential(Linear(2, 25), LeakyReLU(),
                                   Linear(25, 25), LeakyReLU(),
                                   Linear(25, 25), LeakyReLU(),
                                   Linear(25, 2), xavier_init=True)
-    
+
     tanh_model = Sequential(Linear(2, 25), Tanh(),
                             Linear(25, 25), Tanh(),
                             Linear(25, 25), Tanh(),
                             Linear(25, 2), xavier_init=True)
-    
+
     sigmoid_model = Sequential(Linear(2, 25), Sigmoid(),
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 2))
-    
+
     models = [relu_model, leaky_relu_model, tanh_model, sigmoid_model]
-    
+
     final_scores = []
-    
+
     optimizers_names = ["SGD", "Adam"]
     models_names = ["ReLU", "Leaky", "Tanh", "Sigmoid"]
-    
+
     losses_names = ["MSE", "CrossEntropy"]
     losses = [LossMSE(), LossCrossEntropy()]
-    
-    Adam_params = {"ReLU": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
-                  "Leaky": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
-                 "Tanh": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
-                 "Sigmoid": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08}}
-    
-    SGD_params = {"ReLU": {"lr": 0.001},
-                 "Leaky": {"lr": 0.001},
-                 "Tanh": {"lr": 0.001},
-                 "Sigmoid": {"lr": 0.01}}
-    
+
+    adam_params = {"ReLU": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
+                   "Leaky": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
+                   "Tanh": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08},
+                   "Sigmoid": {"lr": 0.001, "b1": 0.9, "b2": 0.999, "epsilon": 1e-08}}
+
+    sgd_params = {"ReLU": {"lr": 0.001},
+                  "Leaky": {"lr": 0.001},
+                  "Tanh": {"lr": 0.001},
+                  "Sigmoid": {"lr": 0.01}}
+
     for optim_name in optimizers_names:
         for loss_name, loss in zip(losses_names, losses):
             for model_name, model in zip(models_names, models):
                 if verbose:
-                    print("Validating model {} with {} and {} loss...".format(model_name, optim_name, loss_name), end='')
+                    print("Validating model {} with {} and {} loss...".format(model_name, optim_name, loss_name),
+                          end='')
                 scores = []
-                
-                if optim_name == "Adam":
-                    params = Adam_params[model_name]
-                    optim = Adam(model, criterion=loss, nb_epochs=50, mini_batch_size=10, lr=params["lr"],
-                               b1=params["b1"], b2=params["b2"], epsilon=params["epsilon"])
-                else:
-                    params = SGD_params[model_name]
-                    optim = SGD(relu_model, criterion=loss, nb_epochs=50, mini_batch_size=10, lr=params["lr"])
 
+                if optim_name == "Adam":
+                    params = adam_params[model_name]
+                    optim = Adam(model, criterion=loss, nb_epochs=50, mini_batch_size=10, lr=params["lr"],
+                                 b1=params["b1"], b2=params["b2"], epsilon=params["epsilon"])
+                else:
+                    params = sgd_params[model_name]
+                    optim = SGD(relu_model, criterion=loss, nb_epochs=50, mini_batch_size=10, lr=params["lr"])
 
                 for ((train_input, train_target), (test_input, test_target)) in datasets:
                     optim.model = copy.deepcopy(model)
@@ -359,10 +361,10 @@ def cross_val_results(verbose=True):
                 scores = torch.FloatTensor(scores)
                 scores_mean = torch.mean(scores).item()
                 scores_var = torch.std(scores).item()
-                
+
                 if verbose:
                     print("Score : {0:.3f} (+/- {1:.3f}) ".format(scores_mean, scores_var))
 
                 final_scores.append((scores_mean, scores_var))
-    
+
     return final_scores

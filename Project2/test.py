@@ -1,6 +1,6 @@
 """
 Module containing the main code of the project
-The goal is to compute_accuracy a mini deep learning framework on a simple 2D binary classification problem
+The goal is to build and run a mini deep learning framework on a simple 2D binary classification problem
 Here we provide the implementation of the default required model definition and training procedure using our framework
 and we also optionally demonstrate the optional provided functionalities such as cross validation and multiple extra
 modules such as different activation and loss functions and a different optimization algorithm and parameters
