@@ -21,8 +21,8 @@ def generate_disc_set(nb):
     if not isinstance(nb, int) or nb <= 0:
         raise ValueError("Number of samples must be a positive integer")
 
-    input_data = torch.empty(nb, 2).uniform_(-1, 1)
-    target_data = input_data.pow(2).sum(dim=1).sub(2 / math.pi).sign().add(1).div(2).long()
+    input_data = torch.empty(nb, 2).uniform_(0, 1)
+    target_data = input_data.pow(2).sum(dim=1).sub(1 / (2 * math.pi)).sign().add(1).div(2).long()
     return input_data, target_data
 
 

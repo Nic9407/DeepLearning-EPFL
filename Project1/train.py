@@ -134,3 +134,44 @@ def train_siamese_model(train_input, train_target, train_classes, loss_weights,
         if verbose:
             print(e, sum_loss)
     return model, siamese_model_grad_norms
+
+
+def test_pair_model(model, test_input, test_target):
+    """
+    Function for evaluating a trained model with the paired architecture on test data
+    Accuracy on predicting the 2 classes is calculated as a ratio
+
+    :param model: trained model with the paired architecture, models.PairModel object
+    :param test_input: paired MNIST test data, torch.Tensor of size [num_test_samples, 2, 14, 14]
+    :param test_target: paired MNIST test class labels, torch.Tensor of size [num_test_samples]
+
+    :returns: test accuracy, float in [0, 1]
+    """
+
+    prediction = model(test_input)
+    predicted_class = torch.argmax(prediction, dim=1)
+    accuracy = (predicted_class == test_target).float().mean().item()
+    return accuracy
+
+
+def test_siamese_model(model, test_input, test_target):
+    """
+    Function for evaluating a trained model with the siamese architecture on test data
+    Accuracies on predicting the 2 classes directly or using the two 10-class predictions are calculated as ratios
+    In the latter case the two 10-class outputs from the siamese branches are manually compared
+
+    :param model: trained model with the siamese architecture, models.SiameseModel object
+    :param test_input: paired MNIST test data, torch.Tensor of size [num_test_samples, 2, 14, 14]
+    :param test_target: paired MNIST test class labels, torch.Tensor of size [num_test_samples]
+
+    :returns: tuple of 2 values: direct 2-class and 10-to-2-class accuracy, floats in [0, 1]
+    """
+
+    prediction_2, (prediction_10_1, prediction_10_2) = model(test_input)
+    predicted_class_2 = torch.argmax(prediction_2, dim=1)
+    predicted_class_10_1 = torch.argmax(prediction_10_1, dim=1)
+    predicted_class_10_2 = torch.argmax(prediction_10_2, dim=1)
+    predicted_class_10 = predicted_class_10_1 <= predicted_class_10_2
+    accuracy_2 = (predicted_class_2 == test_target).float().mean().item()
+    accuracy_10 = (predicted_class_10 == test_target).float().mean().item()
+    return accuracy_2, accuracy_10

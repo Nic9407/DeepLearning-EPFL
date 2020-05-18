@@ -73,10 +73,11 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
     plots_param_names = ("nbch1", "nbch2", "nbfch", "batch_norm+skip_con", "lr")
     for i, (plot_param_names, (score_mean_data, score_std_data)) in enumerate(zip(plots_param_names, grouped_data)):
         plt.figure(figsize=(10, 5))
-        score_mean_data.plot.line(yerr=score_std_data,
-                                  capsize=5,
-                                  ylim=(0.4, 1.1),
-                                  colormap=colormap_brg_darker)
+        score_mean_data.plot(kind="line" if plot_param_names == "lr" else "bar",
+                             yerr=score_std_data,
+                             capsize=5,
+                             ylim=(0.4, 1.1),
+                             colormap=colormap_brg_darker)
         plt.title("Cross validation results for parameters:\n{}".format(plot_param_names), fontsize=18)
         plt.xlabel("Parameter value", fontsize=14)
         plt.ylabel("Average accuracy", fontsize=14)
@@ -84,9 +85,56 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
         plt.yticks(fontsize=12)
         plt.legend(title="Model", title_fontsize=10)
         plt.tight_layout()
-        plt.savefig(fname=plots_filepath + "cross_validation_{}.png".format(plot_param_names),
-                    dpi="figure", format="png")
+        plt.savefig(fname=plots_filepath + "cross_validation_{}.eps".format(plot_param_names),
+                    dpi="figure", format="eps")
         plt.close()
+
+
+def visualize_loss_weights_siamese(cross_val_results, plot_filepath):
+    """
+    Function for generating the plot visualizing the cross-validation results for the siamese loss weights
+
+    :param cross_val_results: tuple of the 4 dictionaries with mean and std scores from test.py
+    :param plot_filepath: local filepath where to save the plot figure, string
+    """
+
+    siamese_model_scores_2, siamese_model_stds_2 = cross_val_results
+
+    def organize_data(scores, stds):
+        """
+        Helper function to organize score means and standard deviations across loss weight values as pandas.Dataframe
+
+        :param scores: dictionary of score means {loss_weights: score_mean}
+        :param stds: dictionary of score stds {loss_weights: score_std}
+
+        :returns: tuple of 2 pandas.Dataframe objects containing mean and std data
+        """
+
+        scores = pd.Series(list(scores.values()),
+                           index=map(str, scores.keys()),
+                           name="SCORE MEAN")
+        scores.index.name = "AUXILIARY LOSS WEIGHTS"
+        stds = pd.Series(list(stds.values()),
+                         index=map(str, stds.keys()),
+                         name="SCORE STD")
+        stds.index.name = "AUXILIARY LOSS WEIGHTS"
+        return scores, stds
+
+    siamese_model_scores_2, siamese_model_stds_2 = organize_data(siamese_model_scores_2, siamese_model_stds_2)
+
+    plt.figure(figsize=(10, 5))
+    siamese_model_scores_2.plot.line(yerr=siamese_model_stds_2,
+                                     capsize=5,
+                                     ylim=(0.3, 1.1),
+                                     colormap=colormap_brg_darker)
+    plt.title("Cross validation results for the\nsiamese auxiliary loss weights", fontsize=18)
+    plt.xlabel("Loss weights", fontsize=14)
+    plt.ylabel("Average accuracy", fontsize=14)
+    plt.xticks(fontsize=12, rotation=30)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(fname=plot_filepath, dpi="figure", format="eps")
+    plt.close()
 
 
 def visualize_gradient_norms(gradient_norms, parameter_names, plot_filepath):
@@ -117,64 +165,5 @@ def visualize_gradient_norms(gradient_norms, parameter_names, plot_filepath):
         ax.legend(title="Depth", prop={"size": 6}, title_fontsize=8)
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
-    plt.savefig(fname=plot_filepath, dpi="figure", format="png")
-    plt.close()
-
-
-def visualize_loss_weights_siamese(cross_val_results, plot_filepath):
-    """
-    Function for generating the plot visualizing the cross-validation results for the siamese loss weights
-
-    :param cross_val_results: tuple of the 4 dictionaries with mean and std scores from test.py
-    :param plot_filepath: local filepath where to save the plot figure, string
-    """
-
-    siamese_model_scores_2, siamese_model_stds_2, \
-    siamese_model_scores_10, siamese_model_stds_10 = cross_val_results
-
-    def organize_data(scores, stds):
-        """
-        Helper function to organize score means and standard deviations across loss weight values as pandas.Dataframe
-
-        :param scores: dictionary of score means {loss_weights: score_mean}
-        :param stds: dictionary of score stds {loss_weights: score_std}
-
-        :returns: tuple of 2 pandas.Dataframe objects containing mean and std data
-        """
-
-        scores = pd.DataFrame(scores.values(),
-                              index=scores.keys(),
-                              columns=["SCORE MEAN", ])
-        scores.index.name = "AUXILIARY LOSS WEIGHTS"
-        stds = pd.DataFrame(stds.values(),
-                            index=stds.keys(),
-                            columns=["SCORE STD", ])
-        stds.index.name = "AUXILIARY LOSS WEIGHTS"
-        return scores, stds
-
-    siamese_model_2_data = organize_data(siamese_model_scores_2, siamese_model_stds_2)
-    siamese_model_10_data = organize_data(siamese_model_scores_10, siamese_model_stds_10)
-
-    # Group results
-    model_names = ("SIAMESE 2", "SIAMESE 10")
-    score_means = (siamese_model_2_data[0], siamese_model_10_data[0])
-    score_mean_data = pd.concat(score_means, axis=1)
-    score_mean_data.columns = model_names
-    score_stds = (siamese_model_2_data[1], siamese_model_10_data[1])
-    score_std_data = pd.concat(score_stds, axis=1)
-    score_std_data.columns = model_names
-
-    plt.figure(figsize=(10, 5))
-    score_mean_data.plot.line(yerr=score_std_data,
-                              capsize=5,
-                              ylim=(0.3, 1.1),
-                              colormap=colormap_brg_darker)
-    plt.title("Cross validation results for the\nsiamese auxiliary loss weights", fontsize=18)
-    plt.xlabel("Loss weights", fontsize=14)
-    plt.ylabel("Average accuracy", fontsize=14)
-    plt.xticks(fontsize=12, rotation=30)
-    plt.yticks(fontsize=12)
-    plt.legend(title="Model", title_fontsize=10)
-    plt.tight_layout()
-    plt.savefig(fname=plot_filepath, dpi="figure", format="png")
+    plt.savefig(fname=plot_filepath, dpi="figure", format="eps")
     plt.close()

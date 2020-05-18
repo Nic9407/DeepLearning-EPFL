@@ -7,6 +7,7 @@ modules such as different activation and loss functions and a different optimiza
 """
 
 import torch
+import random
 from models import Linear, Sequential
 from activations import ReLU, LeakyReLU, Tanh, Sigmoid
 from criteria import LossMSE, LossCrossEntropy
@@ -24,6 +25,7 @@ def default_model():
 
     # Reproducibility
     seed = 1
+    random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
@@ -63,6 +65,7 @@ def main():
 
     # Reproducibility
     seed = 1
+    random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
