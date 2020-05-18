@@ -7,7 +7,7 @@ from criteria import LossMSE
 
 def generate_disc_set(nb):
     """
-    Function for generating the disc dataset of points distributed as Uniform(-1, 1)
+    Function for generating the disc dataset of points distributed as Uniform(0, 1)
     Points inside a 2D disk of radius sqrt(2 / pi) centered at the origin are labeled with 0 while the rest with 1
 
     :param nb: number of train samples, positive int

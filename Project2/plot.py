@@ -56,7 +56,7 @@ def visualize_cross_validation_results(cross_val_results, plots_filepath):
                                              capsize=5,
                                              ylim=(0.5, 1),
                                              colormap='tab10')
-        plt.title("Cross validation results for activation function:\n{}".format(plot_param_names), fontsize=18)
+        plt.title("{}".format(plot_param_names), fontsize=18)
         plt.ylabel("Average accuracy", fontsize=14)
         plt.yticks(fontsize=12)
         plt.xticks([], [])
