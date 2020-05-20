@@ -52,6 +52,7 @@ To run the demo code from the root folder of the project run `python3 test.py`.
 - `torchvision 0.6.0` - PyTorch library used to load the MNIST dataset
 - `pandas 1.0.3` - Data manipulation library, used only for post-processing the cross-validation results to be used for plotting
 - `matplotlib 3.1.0` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
+- `compress_pickle 1.1.0` - Object serialization library, used only to store and load the cross-validation files to and from local storage
 
 All dependencies can be installed easily by running `pip install -r requirements.txt`.
 
