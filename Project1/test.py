@@ -14,6 +14,7 @@ from cross_validate import \
 from serialization import save_object, load_object
 from plot import visualize_cross_validation_results, visualize_gradient_norms, visualize_loss_weights_siamese
 from os.path import isfile
+from os import environ
 import argparse
 
 ######################################################################
@@ -31,6 +32,10 @@ parser.add_argument('--gen_fig',
 parser.add_argument('--seed',
                     type = int, default = 1,
                     help = 'Random seed (default 1, < 0 is no seeding)')
+
+parser.add_argument('--data_dir',
+                    type = str, default = './data',
+                    help = 'Where are the PyTorch data located (default $PYTORCH_DATA_DIR or \'./data\')')
 
 args = parser.parse_args()
 
@@ -69,6 +74,13 @@ def main():
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    
+    if args.data_dir is not None:
+        data_dir = args.data_dir
+    else:
+        data_dir = environ.get('PYTORCH_DATA_DIR')
+        if data_dir is None:
+            data_dir = './data'
 
     # Cross-validation boolean variable, whether to perform it or it is already completed
     cross_val = args.cross_val
@@ -78,7 +90,7 @@ def main():
     # Generate 10 different datasets for training and testing
     datasets = []
     for i in range(10):
-        train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000)
+        train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(1000, data_dir)
         # Move the data to the GPU if CUDA is available
         if torch.cuda.is_available():
             train_input, train_target, train_classes = train_input.cuda(), train_target.cuda(), train_classes.cuda()
@@ -104,7 +116,7 @@ def main():
                                                                  key=lambda x: x[1])
         best_pair_model_score_std = pair_model_stds[best_param_combo_pair_model]
         print("Best parameter combination for the pair model:", best_param_combo_pair_model)
-        print("Best cross-val score achieved by the pair model: {} (+/- {})".format(best_score_pair_model,
+        print("Best cross-val score achieved by the pair model: {:.3f} (+/- {:.3f})".format(best_score_pair_model,
                                                                                     best_pair_model_score_std))
 
         best_param_combo_2_siamese_model, best_score_2_siamese_model = max(siamese_model_scores_2.items(),
@@ -115,7 +127,7 @@ def main():
         best_siamese_model_score_10_std = siamese_model_stds_10[best_param_combo_10_siamese_model]
         print("Best parameter combination for the siamese model:", best_param_combo_10_siamese_model)
         print("Best cross-val scores achieved by the siamese model:\n"
-              "2-class {} (+/- {}), 10-class {} (+/- {})".format(best_score_2_siamese_model,
+              "2-class {:.3f} (+/- {:.3f}), 10-class {:.3f} (+/- {:.3f})".format(best_score_2_siamese_model,
                                                                  best_siamese_model_score_2_std,
                                                                  best_score_10_siamese_model,
                                                                  best_siamese_model_score_10_std))
@@ -127,21 +139,21 @@ def main():
                                                  nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
                                                  batch_norm=use_batch_norm, skip_connections=use_skip_con,
                                                  lr=best_lr, mini_batch_size=100)
-        print("Pair model test score on one dataset:",
-              test_pair_model(trained_pair_model, test_input, test_target))
+        print("Pair model test score on one dataset: {:.3f}".format(
+              test_pair_model(trained_pair_model, test_input, test_target)))
         trained_siamese_2_model, _ = train_siamese_model(train_input, train_target, train_classes,
                                                          loss_weights=(1, 10 ** -0.5),
                                                          nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
                                                          batch_norm=use_batch_norm, skip_connections=use_skip_con,
                                                          lr=best_lr, mini_batch_size=100)
-        print("Siamese model 2-classes test score on one dataset:",
-              test_siamese_model(trained_siamese_2_model, test_input, test_target)[0])
+        print("Siamese model 2-classes test score on one dataset: {:.3f}".format(
+              test_siamese_model(trained_siamese_2_model, test_input, test_target)[0]))
         trained_siamese_10_model, _ = train_siamese_model(train_input, train_target, train_classes, loss_weights=(0, 1),
                                                           nbch1=best_nbch1, nbch2=best_nbch2, nbfch=best_nbfch,
                                                           batch_norm=use_batch_norm, skip_connections=use_skip_con,
                                                           lr=best_lr, mini_batch_size=100)
-        print("Siamese model 10-classes test score on one dataset:",
-              test_siamese_model(trained_siamese_10_model, test_input, test_target)[1])
+        print("Siamese model 10-classes test score on one dataset: {:.3f}".format(
+              test_siamese_model(trained_siamese_10_model, test_input, test_target)[1]))
 
         if generate_figures:
             print("Generating plots...")

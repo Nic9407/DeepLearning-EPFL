@@ -7,6 +7,7 @@ import os
 
 ######################################################################
 
+"""
 parser = argparse.ArgumentParser(description='DLC prologue file for practical sessions.')
 
 parser.add_argument('--full',
@@ -37,7 +38,7 @@ args = parser.parse_args()
 
 if args.seed >= 0:
     torch.manual_seed(args.seed)
-
+"""
 ######################################################################
 # The data
 
@@ -125,14 +126,7 @@ def mnist_to_pairs(nb, input, target):
 
 ######################################################################
 
-def generate_pair_sets(nb):
-    if args.data_dir is not None:
-        data_dir = args.data_dir
-    else:
-        data_dir = os.environ.get('PYTORCH_DATA_DIR')
-        if data_dir is None:
-            data_dir = './data'
-
+def generate_pair_sets(nb, data_dir):
     train_set = datasets.MNIST(data_dir + '/mnist/', train = True, download = True)
     train_input = train_set.data.view(-1, 1, 28, 28).float()
     train_target = train_set.targets
