@@ -165,7 +165,7 @@ def main():
             
             cross_val_results, best_params_score = optimizer.cross_validate(values=params)
             
-            print("Best params for model using {} : (lr={:.3f}, b1={:.3f}, b2={:.3f}, epsilon={:.3f})".format(name, best_params_score["lr"],
+            print("Best params for model using {} : (lr={:.3f}, b1={:.3f}, b2={:.3f}, epsilon={:.1e})".format(name, best_params_score["lr"],
                   best_params_score["b1"], best_params_score["b2"], best_params_score["epsilon"]))
 
         print("Best score for model using {} : {:.3f} (+/- {:.3f})".format(name, best_params_score["mean"], best_params_score["std"]))
