@@ -14,6 +14,27 @@ from cross_validate import \
 from serialization import save_object, load_object
 from plot import visualize_cross_validation_results, visualize_gradient_norms, visualize_loss_weights_siamese
 from os.path import isfile
+import argparse
+
+######################################################################
+
+parser = argparse.ArgumentParser(description='Main file for Project 1.')
+
+parser.add_argument('--cross_val',
+                    action='store_true', default=False,
+                    help = 'Recompute the cross-validation results, may be slow (default False)')
+
+parser.add_argument('--gen_fig',
+                    action='store_true', default=False,
+                    help = 'Regenerate the plots (default False)')
+
+parser.add_argument('--seed',
+                    type = int, default = 1,
+                    help = 'Random seed (default 1, < 0 is no seeding)')
+
+args = parser.parse_args()
+
+######################################################################
 
 
 def standardize_data(train_data, test_data):
@@ -38,7 +59,11 @@ def main():
     """
 
     # Reproducibility
-    seed = 1
+    if args.seed >= 0:
+        seed = args.seed
+    else:
+        seed = 1
+    
     random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -46,9 +71,9 @@ def main():
     torch.backends.cudnn.benchmark = False
 
     # Cross-validation boolean variable, whether to perform it or it is already completed
-    cross_val = False
+    cross_val = args.cross_val
     # Plotting boolean variable, whether to generate the figures or they are already completed
-    generate_figures = False
+    generate_figures = args.gen_fig
 
     # Generate 10 different datasets for training and testing
     datasets = []
