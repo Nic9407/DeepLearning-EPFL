@@ -100,6 +100,8 @@ def main():
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 2), xavier_init=False)
+    
+    model_names = ["ReLU", "Leaky", "Tanh", "Sigmoid"]
 
     train_input, train_target = generate_disc_set(1000)
     test_input, test_target = generate_disc_set(1000)
@@ -110,8 +112,8 @@ def main():
 
     evaluator = Evaluator(leaky_relu_model)
 
-    print("Train accuracy: {:.1f}%".format((evaluator.compute_accuracy(train_input, train_target) * 100).item()))
-    print("Test accuracy: {:.1f}%".format((evaluator.compute_accuracy(test_input, test_target) * 100).item()))
+    print("Train accuracy using LeakyReLU: {:.1f}%".format((evaluator.compute_accuracy(train_input, train_target) * 100).item()))
+    print("Test accuracy using LeakyReLU: {:.1f}%".format((evaluator.compute_accuracy(test_input, test_target) * 100).item()))
 
     models = (relu_model, leaky_relu_model, tanh_model, sigmoid_model)
 
@@ -119,30 +121,54 @@ def main():
     adam_cross_val_param_grid = {"lr": [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1], "b1": [0.9, 0.8],
                                  "b2": [0.999, 0.888], "epsilon": [1e-8, 1e-7, 1e-6]}
 
+    adam_params = {"ReLU": {"lr": [0.001], "b1": [0.9], "b2": [0.999], "epsilon": [1e-08]},
+                   "Leaky": {"lr": [0.001], "b1": [0.9], "b2": [0.999], "epsilon": [1e-08]},
+                   "Tanh": {"lr": [0.001], "b1": [0.9], "b2": [0.999], "epsilon": [1e-08]},
+                   "Sigmoid": {"lr": [0.001], "b1": [0.9], "b2": [0.999], "epsilon": [1e-08]}}
+
+    sgd_params = {"ReLU": {"lr": [0.001]},
+                  "Leaky": {"lr": [0.001]},
+                  "Tanh": {"lr": [0.001]},
+                  "Sigmoid": {"lr": [0.01]}}
+
     mse_loss = not args.CE
     optimizer_sgd = not args.Adam
+    cross_validate = args.cross_val
+    
+    # Different loss functions
+    if mse_loss:
+        criterion = LossMSE()
+    else:
+        criterion = LossCrossEntropy()
 
-    for model in models:
-        # Different loss functions
-        if mse_loss:
-            criterion = LossMSE()
-            model.append_layer(Sigmoid())
-        else:
-            criterion = LossCrossEntropy()
-
+    for name, model in zip(model_names, models):
         if optimizer_sgd:
             # SGD optimizer parameter cross-validation
             optimizer = SGDCV(model, mini_batch_size=10, criterion=criterion)
-            cross_val_results, best_params_score = optimizer.cross_validate(values=sgd_cross_val_param_grid)
-            print("Best params:", best_params_score["lr"])
+            
+            if cross_validate:
+                params = sgd_cross_val_param_grid
+            else:
+                params = sgd_params[name]
+            
+            cross_val_results, best_params_score = optimizer.cross_validate(values=params)
+            
+            print("Best params for model using {} : (lr={:.3f})".format(name, best_params_score["lr"]))
         else:
             # Adam optimizer parameter cross-validation
             optimizer = AdamCV(model, mini_batch_size=10, criterion=criterion)
-            cross_val_results, best_params_score = optimizer.cross_validate(values=adam_cross_val_param_grid)
-            print("Best params:", best_params_score["lr"],
-                  best_params_score["b1"], best_params_score["b2"], best_params_score["epsilon"])
+            
+            if cross_validate:
+                params = adam_cross_val_param_grid
+            else:
+                params = adam_params[name]
+            
+            cross_val_results, best_params_score = optimizer.cross_validate(values=params)
+            
+            print("Best params for model using {} : (lr={:.3f}, b1={:.3f}, b2={:.3f}, epsilon={:.3f})".format(name, best_params_score["lr"],
+                  best_params_score["b1"], best_params_score["b2"], best_params_score["epsilon"]))
 
-        print("Best score: {}(+/- {})".format(best_params_score["mean"], best_params_score["std"]))
+        print("Best score for model using {} : {:.3f} (+/- {:.3f})".format(name, best_params_score["mean"], best_params_score["std"]))
 
 
 if __name__ == "__main__":
