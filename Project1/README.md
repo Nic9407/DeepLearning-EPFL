@@ -14,6 +14,7 @@ In this report we explore the effect of these techniques in a subset of images c
                 in form of classes inheriting torch.nn.Module
 │   plot.py - Module containing implementations of functions for generating the desired plots
 |   report.pdf - Detailed project report
+|   requirements.txt - File containing the python packages required to run the project
 │   serialization.py - Module containing helper functions for (de)serializing
                        and (de)compressing Python objects from/to local storage
 │   test.py - Module containing the main code of the project
@@ -47,10 +48,12 @@ To run the demo code from the root folder of the project run `python3 test.py`.
 
 ### Dependencies
 - Python 3.7
-- `torch 1.3.1` - PyTorch deep learning framework, used for all tensor operations and the complete model definition and training
+- `torch 1.5.0` - PyTorch deep learning framework, used for all tensor operations and the complete model definition and training
+- `torchvision 0.6.0` - PyTorch library used to load the MNIST dataset
 - `pandas 1.0.3` - Data manipulation library, used only for post-processing the cross-validation results to be used for plotting
-- `matplotlib 3.1.1` and `seaborn 0.9.0` - Plotting libraries, used only for plot configuration and generation 
-- `compress_pickle 1.1.0` - Object serialization library, used only to store and load the cross-validation files to and from local storage
+- `matplotlib 3.1.0` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
+
+All dependencies can be installed easily by running `pip install -r requirements.txt`.
 
 
 ## Authors

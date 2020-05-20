@@ -13,6 +13,7 @@
 │   models.py - Module containing implementations of layers and model architectures
 │   plot.py - Module containing implementations of functions for generating the desired plots
 |   report.pdf - Detailed project report
+|   requirements.txt - File containing the python packages required to run the project
 │   test.py - Module containing the main code of the project
               The goal is to build and run a mini deep learning framework on a simple 2D binary classification problem
               Here we provide the implementation of the default required model definition and training procedure
@@ -27,10 +28,11 @@ To run the demo code, from the root folder of the project run `python3 test.py`.
 
 ### Dependencies
 - Python 3.7
-- `torch 1.3.1` - PyTorch deep learning framework, used only for tensor operations
+- `torch 1.5.0` - PyTorch deep learning framework, used only for tensor operations
 - `pandas 1.0.3` - Data manipulation library, used only for post-processing the cross-validation results to be used for plotting
-- `matplotlib 3.1.1` and `seaborn 0.9.0` - Plotting libraries, used only for plot configuration and generation 
+- `matplotlib 3.1.1` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
 
+All dependencies can be installed easily by running `pip install -r requirements.txt`.
 
 ## Authors
 - Fares Ahmed
