@@ -25,23 +25,23 @@ parser = argparse.ArgumentParser(description='Main file for Project 2.')
 
 parser.add_argument('--cross_val',
                     action='store_true', default=False,
-                    help = 'Recompute the cross-validation results, may be slow (default False)')
+                    help='Recompute the cross-validation results, may be slow (default False)')
 
 parser.add_argument('--seed',
-                    type = int, default = 1,
-                    help = 'Random seed (default 1, < 0 is no seeding)')
+                    type=int, default=1,
+                    help='Random seed (default 1, < 0 is no seeding)')
 
 parser.add_argument('--full',
                     action='store_true', default=False,
-                    help = 'Display the full functionnalities of the framework, may be slow (default False)')
+                    help='Display the full functionnalities of the framework, may be slow (default False)')
 
 parser.add_argument('--CE',
                     action='store_true', default=False,
-                    help = 'Use the Cross-Entropy Loss instead of Mean-Squared Error (default False)')
+                    help='Use the Cross-Entropy Loss instead of Mean-Squared Error (default False)')
 
 parser.add_argument('--Adam',
                     action='store_true', default=False,
-                    help = 'Use the Adam optimizer instead of SGD (default False)')
+                    help='Use the Adam optimizer instead of SGD (default False)')
 
 args = parser.parse_args()
 
@@ -104,7 +104,7 @@ def main():
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 25), Sigmoid(),
                                Linear(25, 2), xavier_init=False)
-    
+
     model_names = ["ReLU", "Leaky", "Tanh", "Sigmoid"]
 
     train_input, train_target = generate_disc_set(1000)
@@ -116,8 +116,10 @@ def main():
 
     evaluator = Evaluator(leaky_relu_model)
 
-    print("Train accuracy using LeakyReLU: {:.1f}%".format((evaluator.compute_accuracy(train_input, train_target) * 100).item()))
-    print("Test accuracy using LeakyReLU: {:.1f}%".format((evaluator.compute_accuracy(test_input, test_target) * 100).item()))
+    print("Train accuracy using LeakyReLU: {:.1f}%".format(
+        (evaluator.compute_accuracy(train_input, train_target) * 100).item()))
+    print("Test accuracy using LeakyReLU: {:.1f}%".format(
+        (evaluator.compute_accuracy(test_input, test_target) * 100).item()))
 
     models = (relu_model, leaky_relu_model, tanh_model, sigmoid_model)
 
@@ -138,7 +140,7 @@ def main():
     mse_loss = not args.CE
     optimizer_sgd = not args.Adam
     cross_validate = args.cross_val
-    
+
     # Different loss functions
     if mse_loss:
         criterion = LossMSE()
@@ -149,30 +151,32 @@ def main():
         if optimizer_sgd:
             # SGD optimizer parameter cross-validation
             optimizer = SGDCV(model, mini_batch_size=10, criterion=criterion)
-            
+
             if cross_validate:
                 params = sgd_cross_val_param_grid
             else:
                 params = sgd_params[name]
-            
+
             cross_val_results, best_params_score = optimizer.cross_validate(values=params)
-            
+
             print("Best params for model using {} : (lr={:.3f})".format(name, best_params_score["lr"]))
         else:
             # Adam optimizer parameter cross-validation
             optimizer = AdamCV(model, mini_batch_size=10, criterion=criterion)
-            
+
             if cross_validate:
                 params = adam_cross_val_param_grid
             else:
                 params = adam_params[name]
-            
-            cross_val_results, best_params_score = optimizer.cross_validate(values=params)
-            
-            print("Best params for model using {} : (lr={:.3f}, b1={:.3f}, b2={:.3f}, epsilon={:.1e})".format(name, best_params_score["lr"],
-                  best_params_score["b1"], best_params_score["b2"], best_params_score["epsilon"]))
 
-        print("Best score for model using {} : {:.3f} (+/- {:.3f})".format(name, best_params_score["mean"], best_params_score["std"]))
+            cross_val_results, best_params_score = optimizer.cross_validate(values=params)
+
+            print("Best params for model using {} : (lr={:.3f}, b1={:.3f}, b2={:.3f}, epsilon={:.1e})"
+                  .format(name, best_params_score["lr"], best_params_score["b1"],
+                          best_params_score["b2"], best_params_score["epsilon"]))
+
+        print("Best score for model using {} : {:.3f} (+/- {:.3f})".format(name, best_params_score["mean"],
+                                                                           best_params_score["std"]))
 
 
 if __name__ == "__main__":
@@ -181,13 +185,13 @@ if __name__ == "__main__":
         seed = args.seed
     else:
         seed = 1
-    
+
     random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    
+
     # Execution of the main code
     if args.full:
         main()
