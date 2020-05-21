@@ -48,10 +48,10 @@ To run the demo code from the root folder of the project run `python3 test.py`.
 
 ### Dependencies
 - Python 3.7
-- `torch 1.5.0` - PyTorch deep learning framework, used for all tensor operations and the complete model definition and training
-- `torchvision 0.6.0` - PyTorch library used to load the MNIST dataset
+- `torch 1.4.0` - PyTorch deep learning framework, used for all tensor operations and the complete model definition and training
+- `torchvision 0.5.0` - PyTorch library used to load the MNIST dataset
 - `pandas 1.0.3` - Data manipulation library, used only for post-processing the cross-validation results to be used for plotting
-- `matplotlib 3.1.0` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
+- `matplotlib 3.1.1` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
 
 All dependencies can be installed easily by running `pip install -r requirements.txt`.
 

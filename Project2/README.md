@@ -28,7 +28,7 @@ To run the demo code, from the root folder of the project run `python3 test.py`.
 
 ### Dependencies
 - Python 3.7
-- `torch 1.5.0` - PyTorch deep learning framework, used only for tensor operations
+- `torch 1.4.0` - PyTorch deep learning framework, used only for tensor operations
 - `pandas 1.0.3` - Data manipulation library, used only for post-processing the cross-validation results to be used for plotting
 - `matplotlib 3.1.1` and `seaborn 0.10.1` - Plotting libraries, used only for plot configuration and generation 
 
