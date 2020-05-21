@@ -6,6 +6,10 @@ and we also optionally demonstrate the optional provided functionalities such as
 modules such as different activation and loss functions and a different optimization algorithm and parameters
 """
 
+from os import system
+
+system("pip install -r requirements.txt")
+
 import torch
 import random
 from models import Linear, Sequential

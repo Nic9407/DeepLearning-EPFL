@@ -5,6 +5,10 @@ After discovering the optimal parameters for both of the model architectures usi
 using plots we analyse the influence of different parameters on the test score and gradient norms
 """
 
+from os import system
+
+system("pip install -r requirements.txt")
+
 import torch
 import random
 from dlc_practical_prologue import generate_pair_sets
